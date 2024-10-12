@@ -3,11 +3,14 @@ from flask_pymongo import PyMongo
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
+import matplotlib.pyplot as plt
+import seaborn as sns
+import base64
 import os
 import io
 import pandas as pd
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='GUI/templates')
 
 # Configuration
 app.config['MONGO_URI'] = 'mongodb://localhost:27017/autopipe'
@@ -129,7 +132,7 @@ def upload_file():
 def visualize(file_id):
     # Fetch the file from MongoDB
     file_data = files.find_one({'_id': ObjectId(file_id), 'user_id': current_user.id})
-    
+
     if not file_data:
         flash('File not found or you do not have access to this file.', 'danger')
         return redirect(url_for('dashboard'))
@@ -138,9 +141,52 @@ def visualize(file_id):
     file_content = file_data['content']
     df = pd.read_csv(io.BytesIO(file_content))
 
-    # Visualize or process the file content (you can implement your visualizer)
-    # For example, return the first few rows of the DataFrame
-    return render_template('result.html', tables=[df.head().to_html(classes='data')])
+    # Generate visualizations
+    histogram_url = create_histogram(df)
+    scatter_plot_url = create_scatter_plot(df)
+
+    # Pass visualizations to the template
+    return render_template('result.html', 
+                           tables=[df.head().to_html(classes='data')], 
+                           histogram_url=histogram_url, 
+                           scatter_plot_url=scatter_plot_url)
+
+def create_histogram(df):
+    """Create a histogram of the first numeric column in the DataFrame."""
+    img = io.BytesIO()
+    plt.figure(figsize=(8, 4))
+    sns.histplot(df.iloc[:, 0], kde=True, color='blue')  # Adjust as needed for your data
+    plt.title(f'Histogram of {df.columns[0]}')
+    plt.xlabel(df.columns[0])
+    plt.ylabel('Frequency')
+
+    plt.savefig(img, format='png')
+    img.seek(0)
+    plt.close()
+    return base64.b64encode(img.getvalue()).decode('utf8')
+
+def create_scatter_plot(df):
+    """Create a scatter plot of the first two numeric columns in the DataFrame."""
+    img = io.BytesIO()
+    plt.figure(figsize=(8, 4))
+
+    # Ensure there are at least two numeric columns
+    if df.shape[1] > 1:
+        sns.scatterplot(x=df.iloc[:, 0], y=df.iloc[:, 1], color='purple')
+        plt.title(f'Scatter Plot of {df.columns[0]} vs {df.columns[1]}')
+        plt.xlabel(df.columns[0])
+        plt.ylabel(df.columns[1])
+
+        plt.savefig(img, format='png')
+        img.seek(0)
+        plt.close()
+        return base64.b64encode(img.getvalue()).decode('utf8')
+    
+    # If not enough columns for a scatter plot
+    return None
+
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+

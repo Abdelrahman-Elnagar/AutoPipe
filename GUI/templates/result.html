@@ -26,13 +26,24 @@
                     {{ tables | safe }}
                 </div>
 
-                <!-- Display the visualization -->
-                <h3 class="mt-5">Data Visualization</h3>
-                <img class="img-fluid" src="data:image/png;base64,{{ plot_url }}" alt="Data Visualization">
-                
+                <!-- Display the histogram visualization -->
+                <h3 class="mt-5">Data Visualization: Histogram</h3>
+                <img class="img-fluid" src="data:image/png;base64,{{ histogram_url }}" alt="Histogram">
+
+                <!-- Display the scatter plot visualization -->
+                <h3 class="mt-5">Data Visualization: Scatter Plot</h3>
+                {% if scatter_plot_url %}
+                    <img class="img-fluid" src="data:image/png;base64,{{ scatter_plot_url }}" alt="Scatter Plot">
+                {% else %}
+                    <p>No scatter plot available: not enough numeric columns.</p>
+                {% endif %}
+
                 <!-- Button to upload another file -->
                 <form action="{{ url_for('index') }}" method="GET" class="mt-4">
                     <button type="submit" class="btn btn-secondary btn-lg btn-block">Upload Another File</button>
+                </form>
+                <form action="{{ url_for('dashboard') }}" method="GET" class="mt-4">
+                    <button type="submit" class="btn btn-secondary btn-lg btn-block">Go to Dashboard</button>
                 </form>
             </div>
         </div>

@@ -3,38 +3,36 @@ import seaborn as sns
 import io
 import base64
 
-class DataVisualizer:
-    def __init__(self):
-        pass
+def create_histogram(df):
+    """Create a histogram of the first numeric column in the DataFrame."""
+    img = io.BytesIO()
+    plt.figure(figsize=(8, 4))
+    sns.histplot(df.iloc[:, 0], kde=True, color='blue')  # Adjust as needed for your data
+    plt.title(f'Histogram of {df.columns[0]}')
+    plt.xlabel(df.columns[0])
+    plt.ylabel('Frequency')
 
-    def generate_histogram(self, data):
-        """Generate a histogram of the first column of the data."""
-        img = io.BytesIO()
-        plt.figure(figsize=(8, 4))
-        sns.histplot(data.iloc[:, 0], kde=True, color='blue')
-        plt.title(f'Distribution of {data.columns[0]}')
+    plt.savefig(img, format='png')
+    img.seek(0)
+    plt.close()
+    return base64.b64encode(img.getvalue()).decode('utf8')
+
+def create_scatter_plot(df):
+    """Create a scatter plot of the first two numeric columns in the DataFrame."""
+    img = io.BytesIO()
+    plt.figure(figsize=(8, 4))
+
+    # Ensure there are at least two numeric columns
+    if df.shape[1] > 1:
+        sns.scatterplot(x=df.iloc[:, 0], y=df.iloc[:, 1], color='purple')
+        plt.title(f'Scatter Plot of {df.columns[0]} vs {df.columns[1]}')
+        plt.xlabel(df.columns[0])
+        plt.ylabel(df.columns[1])
 
         plt.savefig(img, format='png')
         img.seek(0)
-        plot_url = base64.b64encode(img.getvalue()).decode('utf8')
         plt.close()
-        return plot_url
+        return base64.b64encode(img.getvalue()).decode('utf8')
 
-    def generate_scatter_with_regression(self, data):
-        """Generate a scatter plot with a regression line."""
-        img = io.BytesIO()
-        plt.figure(figsize=(8, 4))
-        
-        # Ensure that there are at least 2 columns to plot
-        if data.shape[1] > 1:
-            sns.regplot(x=data.iloc[:, 0], y=data.iloc[:, 1], marker='o', color='purple', line_kws={"color": "red"})
-            plt.title(f'Scatter Plot of {data.columns[0]} vs {data.columns[1]}')
-
-            plt.savefig(img, format='png')
-            img.seek(0)
-            scatter_plot_url = base64.b64encode(img.getvalue()).decode('utf8')
-            plt.close()
-            return scatter_plot_url
-        else:
-            # Handle the case where there aren't enough columns for scatter plot
-            return None
+    # If not enough columns for a scatter plot
+    return None
