@@ -1,0 +1,164 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    width: 80%;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+h1, h2 {
+    color: #333;
+}
+
+form {
+    margin: 20px 0;
+}
+
+input[type="file"] {
+    display: block;
+    margin: 20px 0;
+}
+
+button {
+    padding: 10px 20px;
+    background-color: #5cb85c;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #4cae4c;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    margin: 20px 0;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+/* style.css */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+}
+
+.container {
+    width: 80%;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+}
+
+h1, h2 {
+    color: #333;
+}
+
+table {
+    width: 100%;
+    margin-top: 20px;
+}
+
+table, th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+button.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #5cb85c;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+}
+
+button.btn:hover {
+    background-color: #4cae4c;
+}
+
+/* Footer styles */
+footer {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    text-align: center;
+    padding: 10px;
+}
+
+/* style.css */
+
+/* General body styles */
+body {
+    background: url('../images/background.png') no-repeat center center fixed; /* Background image */
+    background-size: cover; /* Makes the background cover the whole page */
+    font-family: 'Poppins', sans-serif; /* Custom font */
+    height: 100vh; /* Ensures the body takes up the full height */
+    margin: 0; /* Resets the margin */
+}
+
+/* Centered container for upload card */
+.container {
+    height: 100%; /* Make sure it takes full height */
+    display: flex; /* Flexbox for centering */
+    justify-content: center; /* Center horizontally */
+    align-items: center; /* Center vertically */
+}
+
+/* Styles for the upload card */
+.upload-card {
+    width: 400px; /* Card width */
+    border-radius: 15px; /* Rounded corners */
+    padding: 30px; /* Inner padding */
+    background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white background */
+    backdrop-filter: blur(10px); /* Optional: add a blur effect to the background */
+    box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2); /* Shadow for better visibility */
+}
+
+/* File input custom styling */
+.custom-file-input {
+    cursor: pointer;
+}
+
+.custom-file-input:lang(en) ~ .custom-file-label::after {
+    content: "Browse";
+    cursor: pointer;
+}
+
+.custom-file-label {
+    text-align: left;
+    padding-left: 20px;
+}
+
+/* Button hover effect */
+.btn:hover {
+    background-color: #0056b3 !important;
+    transition: background-color 0.3s ease-in-out;
+}
