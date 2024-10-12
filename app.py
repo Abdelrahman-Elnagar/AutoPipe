@@ -4,6 +4,8 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from bson.objectid import ObjectId
 import os
+import io
+import pandas as pd
 
 app = Flask(__name__)
 
@@ -17,6 +19,7 @@ login_manager.login_view = 'login'
 
 # MongoDB Collection
 users = mongo.db.users
+files = mongo.db.files
 
 # User class to handle Flask-Login
 class User(UserMixin):
@@ -72,10 +75,14 @@ def login():
     return render_template('login.html')
 
 # Dashboard route (only accessible when logged in)
+# Dashboard route (show user's uploaded files)
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    return render_template('dashboard.html', email=current_user.email)
+    user_files = list(files.find({'user_id': current_user.id}))  # Convert cursor to list
+    return render_template('dashboard.html', files=user_files)
+
+
 
 # Logout route
 @app.route('/logout')
@@ -92,11 +99,48 @@ def index():
     return render_template('upload.html')
 
 # Route to handle file uploads (dashboard functionality)
+# Route to handle file uploads
 @app.route('/upload', methods=['POST'])
 @login_required
 def upload_file():
-    # File upload logic remains here
-    pass
+    if 'file' not in request.files:
+        return redirect(request.url)
+
+    file = request.files['file']
+    if file.filename == '':
+        return redirect(request.url)
+
+    if file:
+        # Save file content in MongoDB
+        file_content = file.read()  # Read the file content in binary format
+        file_id = files.insert_one({
+            'filename': file.filename,
+            'content': file_content,
+            'user_id': current_user.id,
+            'uploaded_at': pd.Timestamp.now()
+        }).inserted_id
+
+        flash(f'File {file.filename} uploaded successfully!', 'success')
+        return redirect(url_for('dashboard'))
+    
+# Route to visualize an uploaded file
+@app.route('/visualize/<file_id>')
+@login_required
+def visualize(file_id):
+    # Fetch the file from MongoDB
+    file_data = files.find_one({'_id': ObjectId(file_id), 'user_id': current_user.id})
+    
+    if not file_data:
+        flash('File not found or you do not have access to this file.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # Convert the file content back to a pandas DataFrame
+    file_content = file_data['content']
+    df = pd.read_csv(io.BytesIO(file_content))
+
+    # Visualize or process the file content (you can implement your visualizer)
+    # For example, return the first few rows of the DataFrame
+    return render_template('result.html', tables=[df.head().to_html(classes='data')])
 
 if __name__ == '__main__':
     app.run(debug=True)
