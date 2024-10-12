@@ -1,14 +1,16 @@
-from flask import Flask, render_template, redirect, url_for, flash, request
-from flask_pymongo import PyMongo
-from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin
-from werkzeug.security import generate_password_hash, check_password_hash
-from bson.objectid import ObjectId
-import matplotlib.pyplot as plt
-import seaborn as sns
+from flask import Flask, render_template, redirect, url_for, flash, request # type: ignore
+from flask_pymongo import PyMongo# type: ignore
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin# type: ignore
+from werkzeug.security import generate_password_hash, check_password_hash# type: ignore
+from bson.objectid import ObjectId# type: ignore
+import matplotlib.pyplot as plt# type: ignore
+import seaborn as sns# type: ignore
 import base64
 import os
 import io
-import pandas as pd
+import pandas as pd# type: ignore
+from bson import ObjectId# type: ignore
+import re
 
 app = Flask(__name__, template_folder='GUI/templates')
 
@@ -26,37 +28,56 @@ files = mongo.db.files
 
 # User class to handle Flask-Login
 class User(UserMixin):
-    def __init__(self, user_id, email):
+    def __init__(self, user_id, username):
         self.id = user_id
-        self.email = email
+        self.username = username
 
 # Load user for Flask-Login session management
 @login_manager.user_loader
 def load_user(user_id):
-    user = users.find_one({'_id': ObjectId(user_id)})
-    if user:
-        return User(str(user['_id']), user['email'])
+    try:
+        user = users.find_one({'_id': ObjectId(user_id)})
+        if user:
+            return User(str(user['_id']), user['username'])
+    except Exception as e:
+        flash('Error loading user: {}'.format(str(e)), 'danger')
     return None
 
 # Registration route
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
+        username = request.form['username']
         email = request.form['email']
         password = request.form['password']
-        existing_user = users.find_one({'email': email})
         
-        if existing_user:
-            flash('User already exists. Please log in.', 'danger')
-            return redirect(url_for('login'))
+        # Basic email format validation
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+            flash('Invalid email format.', 'danger')
+            return redirect(url_for('register'))
+        
+        if len(password) < 8:
+            flash('Password must be at least 8 characters long.', 'danger')
+            return redirect(url_for('register'))
+        
+        try:
+            existing_user = users.find_one({'email': email})
+            if existing_user:
+                flash('User already exists. Please log in.', 'danger')
+                return redirect(url_for('login'))
 
-        # Hash the password and create a new user
-        hashed_password = generate_password_hash(password)
-        new_user_id = users.insert_one({'email': email, 'password': hashed_password}).inserted_id
+            # Hash the password and create a new user
+            hashed_password = generate_password_hash(password)
+            new_user_id = users.insert_one({'email': email, 'password': hashed_password ,'username': username}).inserted_id
 
-        # Log in the user after registration
-        login_user(User(str(new_user_id), email))
-        return redirect(url_for('dashboard'))
+            # Log in the user after registration
+            login_user(User(str(new_user_id), email))
+            flash('Registration successful! Welcome!', 'success')
+            return redirect(url_for('dashboard'))
+
+        except Exception as e:
+            flash('Registration failed: {}'.format(str(e)), 'danger')
+            return redirect(url_for('register'))
 
     return render_template('register.html')
 
@@ -64,16 +85,26 @@ def register():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']
+        username = request.form['username']
         password = request.form['password']
-        user = users.find_one({'email': email})
+        
+        if not username or not password:
+            flash('username and password are required.', 'danger')
+            return redirect(url_for('login'))
 
-        if user and check_password_hash(user['password'], password):
-            # Log the user in
-            login_user(User(str(user['_id']), user['email']))
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Invalid credentials. Please try again.', 'danger')
+        try:
+            user = users.find_one({'username': username})
+            if user and check_password_hash(user['password'], password):
+                # Log the user in
+                login_user(User(str(user['_id']), user['username']))
+                flash('Login successful!', 'success')
+                return redirect(url_for('dashboard'))
+            else:
+                flash('Invalid credentials. Please try again.', 'danger')
+
+        except Exception as e:
+            flash('Login failed: {}'.format(str(e)), 'danger')
+            return redirect(url_for('login'))
 
     return render_template('login.html')
 
