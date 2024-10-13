@@ -222,7 +222,6 @@ def create_scatter_plot(df):
     
     # If not enough columns for a scatter plot
     return None
-# New Route for Imputation Page
 @app.route('/impute/<file_id>')
 @login_required
 def impute(file_id):
@@ -240,7 +239,18 @@ def impute(file_id):
     # Run all imputation techniques and choose the best one
     imputed_results = {}
     scores = {}
+    
+    # Perform all imputation techniques and store results
     imputed_df, best_method = run_all_imputations(df)
+
+    # Create a new document for the imputed data in MongoDB
+    mongo.db.files.insert_one({
+        'filename': f"{file_data['filename']}_imputed.csv",
+        'content': imputed_df.to_csv(index=False),
+        'user_id': current_user.id,
+        'uploaded_at': pd.Timestamp.now(),
+        'method': best_method
+    })
 
     # Visualize the comparison of imputation techniques
     for method, imputed_df in imputed_results.items():
@@ -249,11 +259,23 @@ def impute(file_id):
     # Create a comparison bar chart for imputation scores
     comparison_chart = create_comparison_chart(scores)
 
-    # Pass the imputation results, scores, and best method to the template
+    # Generate visualizations
+    missing_values_heatmap = plot_missing_values_heatmap(df, imputed_df)
+    distribution_plots = plot_distribution_comparison(df, imputed_df)
+    boxplot_plots = plot_boxplot_comparison(df, imputed_df)
+    missing_value_counts_plot = plot_missing_value_counts(df, imputed_df)
+
+    # Pass visualizations to the template
     return render_template('imputation_result.html', 
                            tables=[df.head().to_html(classes='data')], 
                            comparison_chart=comparison_chart,
-                           best_method=best_method)
+                           best_method=best_method,
+                           missing_values_heatmap=missing_values_heatmap,
+                           distribution_plots=distribution_plots,
+                           boxplot_plots=boxplot_plots,
+                           missing_value_counts_plot=missing_value_counts_plot)
+
+
 
 # New Route for Imputation Result Page
 @file_bp.route('/imputation_result')
@@ -293,7 +315,87 @@ def create_comparison_chart(scores):
     plt.close()
     return base64.b64encode(img.getvalue()).decode('utf8')
 
+def plot_missing_values_heatmap(df_before, df_after):
+    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+    sns.heatmap(df_before.isnull(), cbar=False, ax=axes[0], cmap='viridis')
+    axes[0].set_title('Before Imputation')
+    sns.heatmap(df_after.isnull(), cbar=False, ax=axes[1], cmap='viridis')
+    axes[1].set_title('After Imputation')
+
+    # Save to a BytesIO object
+    img = io.BytesIO()
+    plt.tight_layout()
+    plt.savefig(img, format='png')
+    img.seek(0)
+    plt.close()
+
+    return base64.b64encode(img.getvalue()).decode('utf8')
+
+def plot_distribution_comparison(df_before, df_after):
+    missing_columns = df_before.columns[df_before.isnull().any()]
+    columns_to_plot = missing_columns[:3]
+    plot_urls = []
+
+    for column in columns_to_plot:
+        if pd.api.types.is_numeric_dtype(df_before[column]):
+            plt.figure(figsize=(10, 6))
+            sns.kdeplot(df_before[column], label='Before Imputation', color='blue', shade=True)
+            sns.kdeplot(df_after[column], label='After Imputation', color='red', shade=True)
+            plt.title(f'Distribution of {column} Before vs. After Imputation')
+            plt.legend()
+
+            img = io.BytesIO()
+            plt.savefig(img, format='png')
+            img.seek(0)
+            plt.close()
+            plot_urls.append(base64.b64encode(img.getvalue()).decode('utf8'))
+        else:
+            print(f"Skipping column '{column}' because it is not numeric.")
+    
+    return plot_urls
+
+def plot_boxplot_comparison(df_before, df_after):
+    missing_columns = df_before.columns[df_before.isnull().any()]
+    plot_urls = []
+
+    for column in missing_columns[:3]:
+        if pd.api.types.is_numeric_dtype(df_before[column]):
+            fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+            sns.boxplot(data=df_before, y=column, ax=ax[0], color='lightblue')
+            ax[0].set_title(f'Before Imputation: {column}')
+            sns.boxplot(data=df_after, y=column, ax=ax[1], color='lightgreen')
+            ax[1].set_title(f'After Imputation: {column}')
+
+            img = io.BytesIO()
+            plt.tight_layout()
+            plt.savefig(img, format='png')
+            img.seek(0)
+            plt.close()
+            plot_urls.append(base64.b64encode(img.getvalue()).decode('utf8'))
+        else:
+            print(f"Skipping column '{column}' because it is not numeric.")
+    
+    return plot_urls
+
+def plot_missing_value_counts(df_before, df_after):
+    missing_before = df_before.isnull().sum()
+    missing_after = df_after.isnull().sum()
+
+    missing_counts = pd.DataFrame({
+        'Before Imputation': missing_before,
+        'After Imputation': missing_after
+    })
+
+    img = io.BytesIO()
+    missing_counts.plot(kind='bar', figsize=(12, 6), color=['blue', 'green'])
+    plt.title('Missing Values Count Before vs. After Imputation')
+    plt.ylabel('Count of Missing Values')
+    
+    plt.savefig(img, format='png')
+    img.seek(0)
+    plt.close()
+    
+    return base64.b64encode(img.getvalue()).decode('utf8')
+
 if __name__ == '__main__':
     app.run(debug=True)
-
-

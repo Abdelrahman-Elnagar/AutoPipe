@@ -16,26 +16,37 @@
 </head>
 <body>
 
-    <!-- Container for Imputation Results -->
     <div class="container mt-5">
         <div class="card shadow-lg">
             <div class="card-body">
                 <h2 class="card-title text-center">Imputation Results</h2>
 
-                <!-- Show the best imputation method -->
                 <h3 class="mt-4 text-success text-center">Best Imputation Method: {{ best_method }}</h3>
 
-                <!-- Comparison Chart -->
                 <h3 class="mt-5">Imputation Technique Comparison</h3>
                 <img class="img-fluid" src="data:image/png;base64,{{ comparison_chart }}" alt="Comparison Chart">
 
-                <!-- Display the table of the original data -->
+                <h3 class="mt-5">Missing Values Heatmap</h3>
+                <img class="img-fluid" src="data:image/png;base64,{{ missing_values_heatmap }}" alt="Missing Values Heatmap">
+
+                <h3 class="mt-5">Distribution Comparison</h3>
+                {% for plot in distribution_plots %}
+                    <img class="img-fluid" src="data:image/png;base64,{{ plot }}" alt="Distribution Plot">
+                {% endfor %}
+
+                <h3 class="mt-5">Boxplot Comparison</h3>
+                {% for plot in boxplot_plots %}
+                    <img class="img-fluid" src="data:image/png;base64,{{ plot }}" alt="Boxplot">
+                {% endfor %}
+
+                <h3 class="mt-5">Missing Value Counts</h3>
+                <img class="img-fluid" src="data:image/png;base64,{{ missing_value_counts_plot }}" alt="Missing Value Counts">
+
                 <h3 class="mt-5">Original Data (First 5 Rows)</h3>
                 <div class="table-responsive">
                     {{ tables | safe }}
                 </div>
 
-                <!-- Button to upload another file -->
                 <form action="{{ url_for('index') }}" method="GET" class="mt-4">
                     <button type="submit" class="btn btn-secondary btn-lg btn-block">Upload Another File</button>
                 </form>
@@ -47,7 +58,6 @@
         </div>
     </div>
 
-    <!-- Include Bootstrap JS -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
