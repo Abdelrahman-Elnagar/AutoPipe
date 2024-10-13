@@ -23,8 +23,9 @@
                 <h2 class="card-title text-center">Data Summary</h2>
                 <h3 class="mt-4">Summary Statistics</h3>
                 <div class="table-responsive">
-                    {{ tables | safe }}
+                    {{ tables | safe | trim }}
                 </div>
+                
 
                 <!-- Display the histogram visualization -->
                 <h3 class="mt-5">Data Visualization: Histogram</h3>
@@ -45,9 +46,17 @@
                 <form action="{{ url_for('dashboard') }}" method="GET" class="mt-4">
                     <button type="submit" class="btn btn-secondary btn-lg btn-block">Go to Dashboard</button>
                 </form>
-                <form action="{{ url_for('file.impute', file_id=file_id) }}" method="GET" class="mt-4">
-                    <button type="submit" class="btn btn-secondary btn-lg btn-block">Go to imputation step</button>
-                </form>                
+                {% if current_file %}
+                <div>
+                    <form action="{{ url_for('impute', file_id=current_file._id) }}" method="GET" class="mt-4">
+                        <button type="submit" class="btn btn-secondary btn-lg btn-block">Impute</button>
+                    </form>
+                </div>
+            {% else %}
+                <p>You have not uploaded any files yet.</p>
+            {% endif %}
+            
+
                 
             </div>
         </div>

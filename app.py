@@ -12,6 +12,7 @@ import pandas as pd# type: ignore
 from bson import ObjectId# type: ignore
 import re
 from Engine.data_imputation.run_imputation import run_all_imputations
+file_bp = Blueprint('file', __name__)
 
 app = Flask(__name__, template_folder='GUI/templates')
 
@@ -177,16 +178,16 @@ def visualize(file_id):
     histogram_url = create_histogram(df)
     scatter_plot_url = create_scatter_plot(df)
 
-        # Run all imputation techniques and choose the best one
-    '''imputed_df, best_method = run_all_imputations(df)
+    # Fetch only the current file for the user
+    current_user_file = file_data  # since you already fetched the specific file data
 
-    # Show the user the imputed data and method used
-    flash(f'Best imputation technique: {best_method}', 'success')'''
     # Pass visualizations to the template
+# Pass the DataFrame to the template
     return render_template('result.html', 
-                           tables=[df.head().to_html(classes='data')], 
-                           histogram_url=histogram_url, 
-                           scatter_plot_url=scatter_plot_url)
+                        current_file=current_user_file,
+                        tables=[df.head().to_html(classes='data', index=False)], 
+                        histogram_url=histogram_url, 
+                        scatter_plot_url=scatter_plot_url)
 
 def create_histogram(df):
     """Create a histogram of the first numeric column in the DataFrame."""
@@ -222,8 +223,7 @@ def create_scatter_plot(df):
     # If not enough columns for a scatter plot
     return None
 # New Route for Imputation Page
-file_bp = Blueprint('file', __name__)
-@file_bp.route('/impute/<file_id>')
+@app.route('/impute/<file_id>')
 @login_required
 def impute(file_id):
     # Fetch the file from MongoDB
@@ -244,7 +244,6 @@ def impute(file_id):
 
     # Visualize the comparison of imputation techniques
     for method, imputed_df in imputed_results.items():
-        # Store the scores and method names for visualization
         scores[method] = evaluate_imputation(df, imputed_df)
 
     # Create a comparison bar chart for imputation scores
@@ -255,6 +254,13 @@ def impute(file_id):
                            tables=[df.head().to_html(classes='data')], 
                            comparison_chart=comparison_chart,
                            best_method=best_method)
+
+# New Route for Imputation Result Page
+@file_bp.route('/imputation_result')
+@login_required
+def imputation_result():
+    # Logic to render the imputation results
+    return render_template('imputation_result.html')
 
 # Helper to create bar chart for imputation comparisons
 def evaluate_imputation(df_original, df_imputed):

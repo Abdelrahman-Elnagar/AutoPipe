@@ -1,4 +1,4 @@
-import pandas as pd
+'''import pandas as pd
 from sklearn.linear_model import LinearRegression
 
 def linear_regression_imputation(df):
@@ -33,3 +33,4 @@ def linear_regression_imputation(df):
                 df_imputed.loc[df_imputed[col].isnull(), col] = predicted_values
     
     return df_imputed
+'''
