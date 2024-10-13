@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, flash, request # type: ignore
+from flask import Flask, Blueprint, render_template, redirect, url_for, flash, request # type: ignore
 from flask_pymongo import PyMongo# type: ignore
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin# type: ignore
 from werkzeug.security import generate_password_hash, check_password_hash# type: ignore
@@ -11,6 +11,7 @@ import io
 import pandas as pd# type: ignore
 from bson import ObjectId# type: ignore
 import re
+from Engine.data_imputation.run_imputation import run_all_imputations
 
 app = Flask(__name__, template_folder='GUI/templates')
 
@@ -176,6 +177,11 @@ def visualize(file_id):
     histogram_url = create_histogram(df)
     scatter_plot_url = create_scatter_plot(df)
 
+        # Run all imputation techniques and choose the best one
+    '''imputed_df, best_method = run_all_imputations(df)
+
+    # Show the user the imputed data and method used
+    flash(f'Best imputation technique: {best_method}', 'success')'''
     # Pass visualizations to the template
     return render_template('result.html', 
                            tables=[df.head().to_html(classes='data')], 
@@ -215,7 +221,71 @@ def create_scatter_plot(df):
     
     # If not enough columns for a scatter plot
     return None
+# New Route for Imputation Page
+file_bp = Blueprint('file', __name__)
+@file_bp.route('/impute/<file_id>')
+@login_required
+def impute(file_id):
+    # Fetch the file from MongoDB
+    file_data = mongo.db.files.find_one({'_id': ObjectId(file_id), 'user_id': current_user.id})
 
+    if not file_data:
+        flash('File not found or you do not have access to this file.', 'danger')
+        return redirect(url_for('file.dashboard'))
+
+    # Convert the file content back to a pandas DataFrame
+    file_content = file_data['content']
+    df = pd.read_csv(io.BytesIO(file_content))
+
+    # Run all imputation techniques and choose the best one
+    imputed_results = {}
+    scores = {}
+    imputed_df, best_method = run_all_imputations(df)
+
+    # Visualize the comparison of imputation techniques
+    for method, imputed_df in imputed_results.items():
+        # Store the scores and method names for visualization
+        scores[method] = evaluate_imputation(df, imputed_df)
+
+    # Create a comparison bar chart for imputation scores
+    comparison_chart = create_comparison_chart(scores)
+
+    # Pass the imputation results, scores, and best method to the template
+    return render_template('imputation_result.html', 
+                           tables=[df.head().to_html(classes='data')], 
+                           comparison_chart=comparison_chart,
+                           best_method=best_method)
+
+# Helper to create bar chart for imputation comparisons
+def evaluate_imputation(df_original, df_imputed):
+    """
+    A simple evaluation criterion:
+    Measure the number of filled missing values and return a score.
+    The more missing values filled, the better the score.
+    """
+    original_nulls = df_original.isnull().sum().sum()
+    imputed_nulls = df_imputed.isnull().sum().sum()
+
+    # The score is the reduction in missing values.
+    score = original_nulls - imputed_nulls
+    return score
+
+def create_comparison_chart(scores):
+    """Create a bar chart comparing imputation techniques."""
+    img = io.BytesIO()
+    methods = list(scores.keys())
+    scores_values = list(scores.values())
+
+    plt.figure(figsize=(8, 4))
+    plt.bar(methods, scores_values, color='skyblue')
+    plt.title('Imputation Technique Comparison')
+    plt.xlabel('Imputation Methods')
+    plt.ylabel('Scores (Missing Value Reduction)')
+    
+    plt.savefig(img, format='png')
+    img.seek(0)
+    plt.close()
+    return base64.b64encode(img.getvalue()).decode('utf8')
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -16,6 +16,7 @@
             {% for file in files %}
                 <li>
                     {{ file.filename }} - <a href="{{ url_for('visualize', file_id=file._id) }}">Visualize</a>
+                    <a href="{{ url_for('file.impute', file_id=file._id) }}" class="btn btn-secondary btn-sm ml-2">Impute Data</a>
                 </li>
             {% endfor %}
             </ul>
